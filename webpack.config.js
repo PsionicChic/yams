@@ -12,13 +12,20 @@ module.exports = {
     publicPath: '/'
   },
   resolve: {
-    extensions: ['.js', '.jsx']
+    extensions: ['.js', '.jsx', ".json"]
   },
   module: {
     rules: [
       {
-        test: /\.js$/,
-        loader: 'babel-loader',
+        test: /\.(js|jsx)$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: ['env','react', 'stage-2']
+            }
+          }
+        ],
         exclude: /node_modules/
       },
       {
