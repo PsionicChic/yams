@@ -1,24 +1,23 @@
 import React, { Component } from 'react'
 import { Redirect } from 'react-router'
 
-import {
-  StyledButton,
-  StyledFormControl,
-  SButton,
-  SmButton
-} from '../styles/mainStyles'
-import SSelect from '../components/SSelect'
+import OnScoreForm from '../components/OnScoreForm'
+import OnStalemateModal from '../components/OnStalemateModal'
+import { StyledButton, SmButton } from '../styles/mainStyles'
 import Players from '../components/Players'
 import * as Util from '../Utility/ScoreHelpers'
+import Aux from '../hoc/reactAux'
 
 class BidTracker extends Component {
   state = {
     players: this.props.location.state.players || this.state.players,
     chief: ' ',
+    numPlayers: null,
     vice: ' ',
     partner: ' ',
     trump: ' ',
     unTrump: ' ',
+    tiedBidders: [...Array(this.props.location.state.tied).fill(' ')],
     bid: ' ',
     pips: [],
     chiefSuccess: false,
@@ -28,7 +27,12 @@ class BidTracker extends Component {
     ],
     submitted: false,
     showScoreEdit: false,
-    showForm: true
+    showForm: true,
+    open: false,
+    checked: [
+      ...Array(parseInt(this.props.location.state.numPlayers)).fill(false)
+    ],
+    indeterminate: false
   }
 
   editPlayerHandler = ev => {
@@ -37,117 +41,149 @@ class BidTracker extends Component {
   editScoreHandler = ev => {
     this.setState({ showScoreEdit: true, showForm: false })
   }
+  stalemateHandler = () => {
+    this.setState({ stalemate: true, showForm: false, open: true })
+  }
   scoreRoundHandler = () => {
+    const current = this.state.currentScore
+    const chief = this.state.chief.toString()
+    const partner = this.state.partner.toString()
+    const bid = this.state.bid
+    const numPlayers = this.state.numPlayers
+    const players = this.state.players
+    const trump = this.state.trump
+
     const scoreInputs = document.querySelectorAll('*[id="newScore"]')
     const newPips = Array.prototype.map.call(scoreInputs, function(score) {
       return parseInt(score.value)
     })
 
-    this.calcScores(newPips)
-  }
-
-  calcScores = newPips => {
-    let calcScores = []
-    const current = this.state.currentScore
-    const chief = this.state.chief.toString()
-    const partner = this.state.partner.toString()
-    const bid = this.state.bid
-    const numPlayers = this.state.players.length
-
-    let bidMade = bid
-    const chiefKey = this.state.players.findIndex(x => x === chief)
-    const partnerKey = this.state.players.findIndex(x => x === partner)
-    const chiefPips = newPips[chiefKey]
-    const partnerPips = newPips[partnerKey]
-
-    const isChiefSuccess = Util.calcChiefSuccess(
+    const currentScore = Util.calcScores(
+      newPips,
+      players,
+      current,
+      chief,
+      partner,
       bid,
       numPlayers,
-      chiefPips,
-      partnerPips
+      trump
     )
-
-    if (!isChiefSuccess) {
-      bidMade = Util.calcBidMade(numPlayers, chiefPips)
-    }
-
-    current.map((cScore, index) => {
-      const bonus = this.checkBonus(index, isChiefSuccess, bid, chief, bidMade)
-
-      const playerPips = newPips[index]
-      let newScore
-      if (
-        numPlayers > 3 &&
-        isChiefSuccess &&
-        (index == chiefKey || index == partnerKey)
-      ) {
-        newScore = bonus + cScore + chiefPips + partnerPips
-      } else {
-        newScore = bonus + cScore + playerPips
-      }
-
-      calcScores.push(newScore)
-    })
-
     this.setState({
-      currentScore: calcScores,
+      currentScore: currentScore,
       showScoreEdit: false,
-      showForm: true
+      showForm: true,
+      chief: ' ',
+      bid: ' ',
+      vice: ' ',
+      partner: ' ',
+      trump: ' ',
+      unTrump: ' '
     })
   }
-
-  checkBonus = (index, isChiefSuccess, bid, chief, bidMade) => {
-    let bonus = 0
-    const player = this.state.players[index]
-    const partner = this.state.partner
-    const trump = this.state.trump
-    switch (player) {
-      case chief:
-        if (isChiefSuccess) {
-          bonus = Util.calcBonus(bid, trump)
-        } else {
-          bonus = (bid - bidMade) * -10
-        }
-        break
-      case partner:
-        if (isChiefSuccess) {
-          bonus = Util.calcBonus(bid, trump)
-        } else {
-          bonus = 0
-        }
-        break
-      default:
-        if (!isChiefSuccess) {
-          bonus = (bid - bidMade) * 5
-        } else {
-          bonus = 0
-        }
-    }
-
-    return bonus
+  scoreboardHandler = () => {
+    this.setState({ submitted: 'true' })
   }
   onSelect = name => ev => {
     this.setState({ [name]: ev.target.value })
   }
+  onSelectChief = ev => {
+    const text = "input[value='" + ev.target.value + "']"
+    const targetId = "label[id='" + ev.target.value + "']"
+
+    const disabled = document.querySelector(text)
+    disabled.setAttribute('disabled', true)
+    const hidden = document.querySelector(targetId).closest('div')
+    hidden.setAttribute('hidden', 'true')
+    this.setState({ chief: ev.target.value })
+  }
+
+  onSelectBidders = ev => {
+    const tiedBidders = this.state.tiedBidders
+    const players = this.state.players
+    const checkedArray = this.state.checked
+    const playerIndex = players.indexOf(ev.target.value)
+    checkedArray[playerIndex] = !checkedArray[playerIndex]
+
+    let newBidders = [...tiedBidders]
+    if (checkedArray[playerIndex]) {
+      newBidders = [...newBidders, ev.target.value]
+    } else {
+      const biddersindex = newBidders.indexOf(ev.target.value)
+      newBidders.splice(biddersindex, 1)
+    }
+
+    if (newBidders[0] === ' ') {
+      newBidders.splice(0, 1)
+    }
+
+    this.setState({ tiedBidders: newBidders, checked: checkedArray })
+  }
+  stalemateCalcHandler = ev => {
+    const chief = this.state.chief
+    const tiedBidders = this.state.tiedBidders
+    const bid = this.state.bid
+    const currentScore = this.state.currentScore
+    const players = this.state.players
+
+    const newScores = Util.calcStalemate(
+      chief,
+      tiedBidders,
+      bid,
+      currentScore,
+      players
+    )
+
+    const hidden = "div[hidden='true']"
+    const disabled = "input[disabled='true']"
+    const unhide = document.querySelector(hidden)
+    unhide.setAttribute('hidden', false)
+    const enabled = document.querySelector(disabled)
+    enabled.setAttribute('disabled', false)
+
+    this.setState({
+      stalemate: false,
+      showForm: true,
+      open: false,
+      currentScore: newScores,
+      chief: ' ',
+      checked: [
+        ...Array(parseInt(this.props.location.state.numPlayers)).fill(false)
+      ],
+      tiedBidders: [...Array(this.props.location.state.tied).fill(' ')],
+      bid: ' '
+    })
+    //Update provoking bidder score -10/card
+    //Update tied bidders scores +5/card each
+  }
+
+  handleClose = () => {
+    this.setState({
+      stalemate: false,
+      showForm: true,
+      open: false,
+      chief: ' ',
+      checked: [
+        ...Array(parseInt(this.props.location.state.numPlayers)).fill(false)
+      ],
+      tiedBidders: [...Array(this.props.location.state.tied).fill(' ')],
+      bid: ' '
+    })
+  }
 
   render() {
-    const bidArray = [...Array(15).keys()].map(x => ++x)
-    const cardArray = [...Array(10).keys()].map(String)
-    const trump = ['Black', 'Blue', 'Green', 'Red', 'Yellow', ...cardArray]
-    // let redirect = null
-    // if (this.state.submitted) {
-    //   console.log(this.state.players)
-    //   redirect = (
-    //     <Redirect
-    //       to={{
-    //         pathname: '/score',
-    //         state: {
-    //           players: this.state.players,
-    //         }
-    //       }}
-    //     />
-    //   )
-    // }
+    let redirect = null
+    if (this.state.submitted && this.state.players) {
+      redirect = (
+        <Redirect
+          to={{
+            pathname: '/score',
+            state: {
+              players: this.state.players
+            }
+          }}
+        />
+      )
+    }
     let calcScoreButton = null
     if (this.state.showScoreEdit) {
       calcScoreButton = (
@@ -155,98 +191,64 @@ class BidTracker extends Component {
       )
     }
 
-    let form = null
-    if (this.state.showForm) {
-      form = (
-        <form style={{ textAlign: 'center' }}>
-          <StyledFormControl>
-            <SSelect
-              value={this.state.bid}
-              name="bid"
-              selectId="bid"
-              options={bidArray}
-              onChange={this.onSelect('bid')}
-              fhText="Bid"
-            />
+    let stalemateModal = null
+    if (this.state.stalemate) {
+      stalemateModal = (
+        <OnStalemateModal
+          open={this.state.open}
+          onClose={this.handleClose}
+          onClickCalc={this.stalemateCalcHandler}
+          players={this.state.players}
+          bid={this.state.bid}
+          tiedBidders={this.state.tiedBidders}
+          chief={this.state.chief}
+          onSelectBid={this.onSelect('bid')}
+          onSelectBidders={this.onSelectBidders.bind(this)}
+          onSelectChief={this.onSelectChief}
+          isChecked={this.state.checked}
+        />
+      )
+    }
 
-            <StyledFormControl style={Formstyles}>
-              <SSelect
-                value={this.state.vice}
-                name="vice"
-                selectId="vice"
-                options={this.state.players}
-                onChange={this.onSelect('vice')}
-                fhText="Vice"
-                width={150}
-              />
-              <SSelect
-                value={this.state.unTrump}
-                name="underTrump"
-                selectId="underTrump"
-                options={trump}
-                onChange={this.onSelect('unTrump')}
-                fhText="Under Trump"
-              />
-            </StyledFormControl>
-            <StyledFormControl style={Formstyles}>
-              <SSelect
-                value={this.state.chief}
-                name="chief"
-                selectId="chief"
-                options={this.state.players}
-                onChange={this.onSelect('chief')}
-                fhText="Chief"
-                width={150}
-              />
-              <SSelect
-                value={this.state.trump}
-                name="trump"
-                selectId="trump"
-                options={trump}
-                onChange={this.onSelect('trump')}
-                fhText="Trump"
-              />
-            </StyledFormControl>
-            <SSelect
-              value={this.state.partner}
-              name="partner"
-              selectId="partner"
-              options={this.state.players}
-              onChange={this.onSelect('partner')}
-              fhText="Partner"
-              width={150}
-            />
-            <StyledFormControl />
-            <StyledFormControl style={Formstyles}>
-              <SButton onClick={this.stalemateHandler}>Stalemate</SButton>
-              <StyledButton onClick={this.editScoreHandler}>
-                Score Round
-              </StyledButton>
-            </StyledFormControl>
-          </StyledFormControl>
-        </form>
+    let scoreForm = null
+    if (this.state.showForm) {
+      scoreForm = (
+        <OnScoreForm
+          bid={this.state.bid}
+          onSelectBid={this.onSelect('bid')}
+          vice={this.state.vice}
+          players={this.state.players}
+          onSelectVice={this.onSelect('vice')}
+          unTrump={this.state.unTrump}
+          onSelectUnTrump={this.onSelect('unTrump')}
+          chief={this.state.chief}
+          onSelectChief={this.onSelect('chief')}
+          valTrump={this.state.trump}
+          onSelectTrump={this.onSelect('trump')}
+          partner={this.state.partner}
+          onSelectPartner={this.onSelect('partner')}
+          onClickStalemate={this.stalemateHandler}
+          edit={this.editScoreHandler}
+        />
       )
     }
     return (
-      <React.Fragment>
+      <Aux>
+        {redirect}
         <h1 style={h1Styles}>Score Tracker</h1>
-        <SmButton onClick={this.stalemateHandler}>Scoreboard</SmButton>
+        <SmButton onClick={this.scoreboardHandler}>Scoreboard</SmButton>
         <Players
           players={this.state.players}
           currentScore={this.state.currentScore}
           showTextfield={this.state.showScoreEdit}
         />
+
         {calcScoreButton}
-        {form}
-      </React.Fragment>
+        {scoreForm}
+        {stalemateModal}
+      </Aux>
     )
   }
-}
-
-const Formstyles = {
-  display: 'flex',
-  flexDirection: 'row',
-  justifyContent: 'center'
 }
 
 const h1Styles = {
@@ -256,5 +258,6 @@ const h1Styles = {
   fontWeight: 500,
   color: 'cadetblue'
 }
+
 
 export default BidTracker

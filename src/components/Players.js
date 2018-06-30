@@ -10,7 +10,7 @@ import {
 
 const players = props => {
   return (
-    <StyledGrid item xs={12} md={6}>
+    <StyledGrid item xs={12} md={7}>
       <div>
         <StyledList>
           {props.players.map((player, i) => (

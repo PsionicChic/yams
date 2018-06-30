@@ -1,11 +1,10 @@
-import React, { Component } from 'react'
+import React from 'react'
 import { SmallTextField } from '../styles/mainStyles'
 
 const Score = props => {
   let showField = null
   if (props.showTextfield) {
     showField = <SmallTextField id="newScore" label="Enter Score" />
-  
   }
 
   return (

@@ -1,17 +1,13 @@
 import React, { Component } from 'react'
-import { Redirect } from 'react-router'
+import { Redirect } from 'react-router-dom'
 
-import { StyledButton, StyledFormControl } from '../styles/mainStyles'
-
-import Aux from '../hoc/Aux'
-import Players from '../components/Players'
-import PlayerInputs from '../components/PlayerInputs'
-import SSelect from '../components/SSelect'
+import OnBoardForm from '../components/OnBoardForm'
+import Aux from '../hoc/reactAux'
 
 class Onboard extends Component {
   state = {
     numPlayers: 4,
-    players: [],
+    players: null,
     playUntil: 200,
     submitted: false
   }
@@ -21,12 +17,37 @@ class Onboard extends Component {
     const playerNames = Array.prototype.map.call(playerInputs, function(name) {
       return name.value.toUpperCase()
     })
-    this.setState({
-      players: playerNames,
-      submitted: true
+    this.validate(playerNames)
+    var containsNoEmpties = !playerNames.some(function(e) {
+      return !e || 0 === e.length
+    })
+
+    if (containsNoEmpties) {
+      const numPlayers = document.querySelector('[id="numPlayers"]').value
+      this.setState({
+        players: playerNames,
+        numPlayers: numPlayers,
+        submitted: true
+      })
+    } else {
+      this.postErrors(playerInputs, playerNames)
+    }
+  }
+  postErrors = (inputs, array) => {
+    array.map(function(name, index) {
+      if (!e || 0 === e.length) {
+        inputs[index].setAttribute('error', 'true')
+      }
     })
   }
 
+  validate = playerNames => {
+    var containsNoEmpties = !playerNames.some(function(e) {
+      return !e || 0 === e.length
+    })
+
+    return containsNoEmpties
+  }
   onSelect = name => ev => {
     this.setState({ [name]: ev.target.value })
   }
@@ -46,44 +67,32 @@ class Onboard extends Component {
         />
       )
     }
-    let form = (
-      <form style={{ textAlign: 'center' }}>
-        <StyledFormControl>
-          <SSelect
-            required
-            value={this.state.numPlayers}
-            options={[...Array(4).keys()].map(x => 3 + x)}
-            onChange={this.onSelect('numPlayers')}
-            name="numPlayers"
-            selectId="numPlayers"
-            fhText="# of Players"
-          />
-
-          <PlayerInputs numPlayers={this.state.numPlayers} />
-          <SSelect
-            required
-            value={this.state.playUntil}
-            options={[...Array(6).keys()].map(x => ++x * 100)}
-            onChange={this.onSelect('playUntil')}
-            name="playUntil"
-            selectId="playUntil"
-            fhText="Play Until"
-          />
-
-          <StyledButton onClick={this.beginBiddingHandler}>
-            Begin Bidding
-          </StyledButton>
-        </StyledFormControl>
-      </form>
+    let onBoardForm = (
+      <OnBoardForm
+        numPlayers={this.state.numPlayers}
+        onChangeNum={this.onSelect('numPlayers')}
+        playUntil={this.state.playUntil}
+        onChangePlayUntil={this.onSelect('playUntil')}
+        beginBidding={this.beginBiddingHandler}
+      />
     )
+
     return (
       <Aux>
         {redirect}
-        <h1 style={{ textAlign: 'center' }}>Game Setup</h1>
-        {form}
+        <h1 style={h1Styles}>Game Setup</h1>
+        {onBoardForm}
       </Aux>
     )
   }
+}
+
+const h1Styles = {
+  textAlign: 'center',
+  fontFamily: 'Roboto, Helvetica, Ariel, san-serif',
+  fontSize: 25,
+  fontWeight: 500,
+  color: 'cadetblue'
 }
 
 export default Onboard

@@ -10,27 +10,27 @@ import {
 } from '../styles/mainStyles'
 
 import * as Util from '../Utility/ScoreHelpers'
-import classes from './Scoreboard.css'
 import Players from '../components/Players'
 
 class Scoreboard extends Component {
   state = {
-   
+    players: this.props.location.state.players || this.state.players
   }
 
- 
-
   render() {
-    
     return (
       <React.Fragment>
-        
-          <h1>Scoreboard</h1>
-
-          
+        <h1 style={h1Styles}>Scoreboard</h1>
       </React.Fragment>
     )
   }
+}
+const h1Styles = {
+  textAlign: 'center',
+  fontFamily: 'Roboto, Helvetica, Ariel, san-serif',
+  fontSize: 25,
+  fontWeight: 500,
+  color: 'cadetblue'
 }
 
 export default Scoreboard
