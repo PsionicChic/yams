@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { Redirect } from 'react-router'
+import { Redirect } from 'react-router-dom'
 
 import OnScoreForm from '../components/OnScoreForm'
 import OnStalemateModal from '../components/OnStalemateModal'

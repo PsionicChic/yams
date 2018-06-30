@@ -1,6 +1,5 @@
 import React, { Component } from 'react'
 import {Route, Switch } from 'react-router-dom'
-import ProtectedRoute from './ProtectedRoute'
 
 import Onboard from './Onboard'
 import BidTracker from './BidTracker'

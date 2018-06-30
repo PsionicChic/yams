@@ -1,16 +1,4 @@
 import React, { Component } from 'react'
-import { Redirect } from 'react-router'
-
-import {
-  StyledButton,
-  StyledFormHelperText,
-  StyledSelect,
-  StyledFormControl,
-  StyledMenuItem
-} from '../styles/mainStyles'
-
-import * as Util from '../Utility/ScoreHelpers'
-import Players from '../components/Players'
 
 class Scoreboard extends Component {
   state = {

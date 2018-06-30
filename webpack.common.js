@@ -1,10 +1,20 @@
 const path = require('path')
 const autoprefixer = require('autoprefixer')
+const CleanWebpackPlugin = require('clean-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 module.exports = {
-  devtool: 'cheap-module-eval-source-map',
-  entry: './src/index.js',
+  entry: {
+    app: './src/index.js'
+  },
+  plugins: [
+    new CleanWebpackPlugin(['dist']),
+    new HtmlWebpackPlugin({
+      template: __dirname + '/src/index.html',
+      filename: 'index.html',
+      inject: 'body'
+    }),
+  ],
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
@@ -12,7 +22,7 @@ module.exports = {
     publicPath: '/'
   },
   resolve: {
-    extensions: ['.js', '.jsx', ".json"]
+    extensions: ['.js', '.jsx', ".json"],
   },
   module: {
     rules: [
@@ -61,12 +71,5 @@ module.exports = {
   devServer: {
     historyApiFallback: true,
   },
-  mode: 'development',
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: __dirname + '/src/index.html',
-      filename: 'index.html',
-      inject: 'body'
-    })
-  ]
+  
 }
